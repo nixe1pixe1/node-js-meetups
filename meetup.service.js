@@ -29,15 +29,10 @@ class MeetupService {
 
   static async createMeetup(meetupDto) {
     const client = await pool.connect();
+    const { name, description, tags, time, location } = meetupDto;
     const result = await client.query(
       "INSERT INTO meetups (name, description, tags, time, location) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-      [
-        meetupDto.name,
-        meetupDto.description,
-        meetupDto.tags,
-        meetupDto.time,
-        meetupDto.location,
-      ]
+      [name, description, tags, time, location]
     );
     const meetup = result.rows[0];
     client.release();
@@ -46,16 +41,10 @@ class MeetupService {
 
   static async updateMeetupById(id, meetupUpdateDto) {
     const client = await pool.connect();
+    const { name, description, tags, time, location } = meetupUpdateDto;
     const result = await client.query(
       "UPDATE meetups SET name=$1, description=$2, tags=$3, time=$4, location=$5 WHERE id=$6 RETURNING *",
-      [
-        meetupUpdateDto.name,
-        meetupUpdateDto.description,
-        meetupUpdateDto.tags,
-        meetupUpdateDto.time,
-        meetupUpdateDto.location,
-        id,
-      ]
+      [name, description, tags, time, location, id]
     );
     const meetup = result.rows[0];
     client.release();
