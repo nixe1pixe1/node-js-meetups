@@ -9,12 +9,75 @@ const pool = new Pool({
 });
 
 class MeetupService {
-  static async getAllMeetups() {
+  static async getAllMeetups(params) {
     const client = await pool.connect();
-    const result = await client.query("SELECT * FROM meetups");
-    const meetups = result.rows;
+
+    const queryParams = [];
+    let query = "SELECT * FROM meetups";
+    let subquery = "";
+
+    const result = {};
+
+    if (params) {
+      const { search, filter, sort, page, limit } = params;
+
+      let searchquery = "";
+
+      if (search) {
+        queryParams.push(`%${search}%`);
+        searchquery +=
+          ` WHERE name ILIKE $${queryParams.length} ` +
+          `OR description ILIKE $${queryParams.length}`;
+      }
+
+      if (filter) {
+        queryParams.push(`%${filter}%`);
+        searchquery += ` AND tags ILIKE $${queryParams.length}`;
+      }
+
+      if (sort) {
+        const [sortColumn, sortOrder] = sort.split(":");
+        if (
+          ["id", "name", "description", "tags", "location", "time"].includes(
+            sortColumn.toLowerCase()
+          ) &&
+          ["desc", "asc"].includes(sortOrder.toLowerCase())
+        )
+          subquery += searchquery + ` ORDER BY ${sortColumn} ${sortOrder.toUpperCase()}`;
+      }
+
+      if (page) {
+        const countResult = await pool.query(
+          `SELECT COUNT(*) FROM meetups ${searchquery}`,
+          queryParams
+        );
+        const totalCount = countResult.rows[0].count;
+        const totalPages = Math.ceil(totalCount / (limit ? limit : 10));
+        const currentPage = parseInt(page);
+        const offset = (page - 1) * (limit ? limit : 10);
+
+        result.prevPage = currentPage > 1 ? currentPage - 1 : null;
+        result.nextPage = currentPage < totalPages ? currentPage + 1 : null;
+        result.currentPage = currentPage;
+        result.totalCount = totalCount;
+        result.totalPages = totalPages;
+
+        queryParams.push(limit ? limit : 10, offset);
+        subquery += ` LIMIT $${queryParams.length - 1} OFFSET $${
+          queryParams.length
+        }`;
+      }
+    }
+
+    query += subquery;
+
+    const queryResult = await client.query(query, queryParams);
+    const meetups = queryResult.rows;
     client.release();
-    return meetups;
+
+    const { totalCount, totalPages, currentPage, prevPage, nextPage } = result;
+
+    return { meetups, totalCount, totalPages, currentPage, prevPage, nextPage };
   }
 
   static async getMeetupById(id) {

@@ -5,7 +5,7 @@ const { handleError } = require("./utils");
 class MeetupController {
   static async getAllMeetups(req, res) {
     try {
-      const meetups = await MeetupService.getAllMeetups();
+      const meetups = await MeetupService.getAllMeetups(req.query);
       res.send(meetups);
     } catch (err) {
       handleError(res, err);

@@ -14,6 +14,4 @@ app.put("/meetups/:id", MeetupController.updateMeetupById);
 
 app.delete("/meetups/:id", MeetupController.deleteMeetupById);
 
-app.listen(3000, () => {
-  console.log("Server is listening to port 3000");
-});
+app.listen(3000, () => console.log("Server is listening to port 3000"));
